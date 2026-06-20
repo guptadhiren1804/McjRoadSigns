@@ -3,55 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MCJ Gateway | Secure Access Terminal</title>
-    <script src="https://tailwindcss.com"></script>
-    <link rel="stylesheet" href="/static/citizen_assets/style.css">
+    <title>MCJ Smart Signage - Admin Portal Gateway</title>
+    <!-- Links directly to your verified admin theme -->
     <link rel="stylesheet" href="/static/admin_assets/admin.css">
+    <style>
+        /* Centering the card layout cleanly in the middle of the workspace viewport */
+        .login-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 24px;
+            background-color: var(--bg-workspace);
+        }
+        .login-card {
+            width: 100%;
+            max-width: 440px;
+        }
+        .login-title {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+    </style>
 </head>
-<body class="bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 flex items-center justify-center min-h-screen p-4 font-sans antialiased text-slate-200">
-    
-    <!-- Cyber Grid Ambient Overlay Background -->
-    <div class="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none"></div>
-    <div class="absolute w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[120px] -top-40 -left-40 pointer-events-none"></div>
+<body>
 
-    <div class="bg-slate-900/80 backdrop-blur-xl border border-slate-800/80 rounded-2xl shadow-2xl w-full max-w-md p-8 relative z-10 transition-all duration-300 hover:border-slate-700/60">
-        
-        <!-- Header Section -->
-        <div class="text-center mb-8">
-            <div class="inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-bold uppercase tracking-widest mb-4">
-                MCJ Smart Infrastructure
+    <div class="login-wrapper">
+        <!-- Reuses your .panel-box definition container from admin.css -->
+        <div class="panel-box login-card">
+            
+            <div class="login-title">
+                <!-- Reuses your .panel-heading definition container from admin.css -->
+                <h2 class="panel-heading" style="border: none; padding: 0; margin-bottom: 4px;">MCJ Jalandhar</h2>
+                <p style="font-size: 13px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
+                    Smart Signage Enterprise Engine
+                </p>
             </div>
-            <h1 class="text-2xl font-black text-white tracking-tight">Administrative Terminal</h1>
-            <p class="text-sm text-slate-400 mt-1">Authorized Command Engine Entry Node Only</p>
-        </div>
-
-        <!-- Login Form Layout -->
-        <form action="/api/auth/otp/request" method="POST" class="space-y-6">
-            <div>
-                <label for="mobile_number" class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">
-                    Registered Mobile Identity
-                </label>
-                <div class="relative rounded-xl group transition-all">
-                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 font-mono font-bold text-sm bg-slate-950 border border-slate-800 rounded-l-xl px-3 group-focus-within:border-indigo-500 group-focus-within:text-indigo-400 transition-colors">
-                        +91
-                    </div>
-                    <input type="tel" id="mobile_number" name="mobile_number" required maxlength="10" minlength="10"
-                           placeholder="9041207675" pattern="[6-9][0-9]{9}" autocomplete="tel-national"
-                           class="block w-full pl-20 pr-4 py-4 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono text-lg tracking-widest placeholder:text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all">
+            
+            <!-- Standard form action hitting your verified endpoint -->
+            <form action="/api/auth/otp/request" method="POST">
+                
+                <!-- Reuses your .form-group definition container from admin.css -->
+                <div class="form-group">
+                    <label for="mobile">Authorized Terminal Cellular Number</label>
+                    
+                    <!-- FIXED: Added name="mobile" so FastAPI can extract the form element safely -->
+                    <input type="tel" id="mobile" name="mobile" class="form-control" 
+                           placeholder="e.g., 9041207675" pattern="[0-9]{10}" 
+                           required autocomplete="off" autofocus>
+                           
+                    <p style="margin-top: 8px; font-size: 12px; color: #64748b; line-height: 1.4;">
+                        Enter your registered 10-digit municipal administrative contact to dispatch a dynamic dynamic access token.
+                    </p>
                 </div>
-            </div>
-
-            <button type="submit" class="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-bold py-4 px-4 rounded-xl shadow-lg shadow-indigo-600/20 transition-all duration-150 active:scale-[0.99] flex items-center justify-center space-x-2 text-sm uppercase tracking-wider font-semibold">
-                <span>Request Verification Pin</span>
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-            </button>
-        </form>
-
-        <div class="mt-8 pt-5 border-t border-slate-800/80 text-center">
-            <span class="text-[10px] font-bold text-slate-600 uppercase tracking-widest block">
-                Secure Layer Protected &bull; Audit Trails Initialized
-            </span>
+                
+                <!-- Reuses your .btn and .btn-primary components from admin.css -->
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 8px;">
+                    Initiate Secure Auth Pipeline
+                </button>
+                
+            </form>
+            
         </div>
     </div>
+
 </body>
 </html>

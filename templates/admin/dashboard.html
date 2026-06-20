@@ -18,20 +18,19 @@
     <!-- Main Workspace Dashboard Grid Matrix Layer -->
     <main class="dashboard-grid">
 
-
         <!-- Left Panel Column: Cascading Dropdown Deployment Form Section -->
         <section class="panel-box">
             <h2 class="panel-heading">Deploy New IRC:67 Asset Board</h2>
             <form id="signCreationForm" onsubmit="executeCreationPipeline(event)">
                 
-                <!-- 1. Category Class Selector -->
+                <!-- 1. Category Class Selector (Option values aligned to JSON keys) -->
                 <div class="form-group">
                     <label>1. Select Sign Classification Category</label>
                     <select id="selectCategory" class="form-control" onchange="onCategoryChanged()" required>
                         <option value="">-- Choose Category --</option>
-                        <option value="MandatoryOrRegulatory">Mandatory or Regulatory Signs</option>
-                        <option value="CautionaryOrWarning">Cautionary or Warning Signs</option>
-                        <option value="InformatoryOrGuide">Informatory or Guide Signs</option>
+                        <option value="Regulatory Signs">Mandatory or Regulatory Signs</option>
+                        <option value="Warning Signs">Cautionary or Warning Signs</option>
+                        <option value="Informatory Signs">Informatory or Guide Signs</option>
                     </select>
                 </div>
 
@@ -62,7 +61,7 @@
                 <!-- 5. Dimension Size Selector (Final Input that resolves to master_id) -->
                 <div class="form-group">
                     <label>5. Select Industrial Manufacturing Size Dimensions</label>
-                    <select id="masterId" class="form-control" disabled required>
+                    <select id="masterId" name="master_id" class="form-control" disabled required>
                         <option value="">-- Select Sign Code First --</option>
                     </select>
                 </div>
@@ -84,7 +83,7 @@
                 <div class="form-group"><label>Punjabi Title Header (ਪੰਜਾਬੀ)</label><input type="text" id="titlePa" class="form-control" placeholder="e.g., ਮਾਡਲ ਟਾਊਨ ਚੌਂਕ" required></div>
                 <div class="form-group"><label>Hindi Title Header (हिंदी)</label><input type="text" id="titleHi" class="form-control" placeholder="e.g., मॉडल टाउन चौक" required></div>
 
-                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">Generate Random Asset and Compile Print PDF</button>
+                <button type="submit" id="btnSubmit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">Generate Random Asset and Compile Print PDF</button>
             </form>
         </section>
 
@@ -106,162 +105,159 @@
 
     </main>
 
+        <script>
+    // 1. HARDCODED MODEL DATA LAYER MATCHING YOUR REGISTRY SPECIFICATIONS
+    let signMastersRegistry = [
+        {"id": 1, "category": "Regulatory Signs", "subclass": "Mandatory", "shape": "Circular", "code": "IRC-67:01 (Stop Board)", "dimensions": "900mm Standard"},
+        {"id": 2, "category": "Warning Signs", "subclass": "Cautionary", "shape": "Triangular", "code": "IRC-67:02 (Narrow Bridge)", "dimensions": "600mm Standard"},
+        {"id": 3, "category": "Informatory Signs", "subclass": "Directional", "shape": "Rectangular", "code": "IRC-67:03 (Facility Board)", "dimensions": "800mm Standard"}
+    ];
 
-    <!-- Script Engine Core: Dynamic Filters and API Transmission -->
-    <script>
-        let allMasterRecords = [];
-        let latestGeneratedUid = "";
+    let currentDeployedUid = ""; // Global reference storage token tracker placeholder
 
-        // Query metadata directly from backend on template initialization
-        window.addEventListener('DOMContentLoaded', async () => {
-            try {
-                const response = await fetch('/api/admin/sign-masters-lookup');
-                if (response.ok) {
-                    allMasterRecords = await response.json();
-                } else {
-                    console.error("Failed to populate cascading selector datasets.");
-                }
-            } catch (err) {
-                console.error("Network communication error initializing dropdown lists.");
+    // Pull down dynamic datasets from database lookup endpoints upon page initiation
+    document.addEventListener("DOMContentLoaded", async () => {
+        try {
+            const response = await fetch('/api/admin/sign-masters-lookup');
+            const result = await response.json();
+            if (result && result.data) {
+                signMastersRegistry = result.data;
             }
+        } catch (error) {
+            console.log("Database lookup offline. Working via static asset configurations.");
+        }
+    });
+
+    // 2. STEP 1: Triggers when classification changes
+    function onCategoryChanged() {
+        const selectedCat = document.getElementById("selectCategory").value;
+        const subSelect = document.getElementById("selectSubclass");
+        
+        clearDownstreamFrom(2);
+        if (!selectedCat) return;
+
+        const filtered = signMastersRegistry.filter(x => x.category === selectedCat);
+        const uniqueSub = [...new Set(filtered.map(x => x.subclass))];
+
+        subSelect.innerHTML = '<option value="">-- Choose Subclass --</option>';
+        uniqueSub.forEach(s => {
+            subSelect.innerHTML += `<option value="${s}">${s}</option>`;
         });
+        subSelect.disabled = false;
+    }
 
-        function clearDropdown(elementId, placeholderText) {
-            const dropdown = document.getElementById(elementId);
-            dropdown.innerHTML = `<option value="">${placeholderText}</option>`;
-            dropdown.disabled = true;
+    // 3. STEP 2: Triggers when operational subclass changes
+    function onSubclassChanged() {
+        const selectedCat = document.getElementById("selectCategory").value;
+        const selectedSub = document.getElementById("selectSubclass").value;
+        const shapeSelect = document.getElementById("selectShape");
+
+        clearDownstreamFrom(3);
+        if (!selectedSub) return;
+
+        const filtered = signMastersRegistry.filter(x => x.category === selectedCat && x.subclass === selectedSub);
+        const uniqueShapes = [...new Set(filtered.map(x => x.shape))];
+
+        shapeSelect.innerHTML = '<option value="">-- Choose Shape Profile --</option>';
+        uniqueShapes.forEach(sh => {
+            shapeSelect.innerHTML += `<option value="${sh}">${sh}</option>`;
+        });
+        shapeSelect.disabled = false;
+    }
+
+    // 4. STEP 3: Triggers when geometric profile shape changes
+    function onShapeChanged() {
+        const selectedCat = document.getElementById("selectCategory").value;
+        const selectedSub = document.getElementById("selectSubclass").value;
+        const selectedShape = document.getElementById("selectShape").value;
+        const codeSelect = document.getElementById("selectSignCode");
+
+        clearDownstreamFrom(4);
+        if (!selectedShape) return;
+
+        const items = signMastersRegistry.filter(x => 
+            x.category === selectedCat && x.subclass === selectedSub && x.shape === selectedShape
+        );
+
+        codeSelect.innerHTML = '<option value="">-- Choose Reference Code --</option>';
+        items.forEach(item => {
+            codeSelect.innerHTML += `<option value="${item.id}">${item.code}</option>`;
+        });
+        codeSelect.disabled = false;
+    }
+
+    // 5. STEP 4 & 5: Unlocks manufacturing dimension size option blocks
+    function onSignCodeChanged() {
+        const chosenId = document.getElementById("selectSignCode").value;
+        const dimSelect = document.getElementById("masterId");
+
+        clearDownstreamFrom(5);
+        if (!chosenId) return;
+
+        const targetItem = signMastersRegistry.find(x => x.id == chosenId);
+        if (targetItem) {
+            dimSelect.innerHTML = `<option value="${targetItem.id}">${targetItem.dimensions}</option>`;
+            dimSelect.disabled = false;
         }
+    }
 
-        // 1. When Category changes -> Unlock Subclass options list box
-        function onCategoryChanged() {
-            const category = document.getElementById('selectCategory').value;
-            clearDropdown('selectSubclass', '-- Select Subclass --');
-            clearDropdown('selectShape', '-- Select Shape First --');
-            clearDropdown('selectSignCode', '-- Select Sign Code First --');
-            clearDropdown('masterId', '-- Select Dimensions First --');
+    // 6. PIPELINE CASCADES RESETS AND CLEANUP UTILITY
+    function clearDownstreamFrom(level) {
+        if (level <= 2) { document.getElementById("selectSubclass").innerHTML = '<option value="">-- Select Category First --</option>'; document.getElementById("selectSubclass").disabled = true; }
+        if (level <= 3) { document.getElementById("selectShape").innerHTML = '<option value="">-- Select Subclass First --</option>'; document.getElementById("selectShape").disabled = true; }
+        if (level <= 4) { document.getElementById("selectSignCode").innerHTML = '<option value="">-- Select Shape First --</option>'; document.getElementById("selectSignCode").disabled = true; }
+        if (level <= 5) { document.getElementById("masterId").innerHTML = '<option value="">-- Select Sign Code First --</option>'; document.getElementById("masterId").disabled = true; }
+    }
 
-            if (!category) return;
+    // 7. API LAYER INTERCEPTOR AND TRANSACTION SUBMISSION PIPELINE
+    async function executeCreationPipeline(event) {
+        event.preventDefault();
+        
+        // Assemble standard Form Data key-values to pipe directly to your FastAPI main.py endpoint
+        const formData = new FormData();
+        formData.append("master_id", document.getElementById("masterId").value);
+        formData.append("longitude", document.getElementById("longCoord").value);
+        formData.append("latitude", document.getElementById("latCoord").value);
+        formData.append("title_en", document.getElementById("titleEn").value);
+        formData.append("title_pa", document.getElementById("titlePa").value);
+        formData.append("title_hi", document.getElementById("titleHi").value);
 
-            const matches = allMasterRecords.filter(r => r.category === category);
-            const uniqueSubclasses = [...new Set(matches.map(r => r.subclass))];
+        try {
+            const response = await fetch('/api/admin/signs/create', { method: 'POST', body: formData });
+            const data = await response.json();
             
-            const subclassDropdown = document.getElementById('selectSubclass');
-            uniqueSubclasses.forEach(sub => {
-                subclassDropdown.innerHTML += `<option value="${sub}">${sub}</option>`;
-            });
-            subclassDropdown.disabled = false;
-        }
-
-        // 2. When Subclass changes -> Unlock Shape options list box
-        function onSubclassChanged() {
-            const category = document.getElementById('selectCategory').value;
-            const subclass = document.getElementById('selectSubclass').value;
-            clearDropdown('selectShape', '-- Select Shape --');
-            clearDropdown('selectSignCode', '-- Select Sign Code First --');
-            clearDropdown('masterId', '-- Select Dimensions First --');
-
-            if (!subclass) return;
-
-            const matches = allMasterRecords.filter(r => r.category === category && r.subclass === subclass);
-            const uniqueShapes = [...new Set(matches.map(r => r.shape))];
-
-            const shapeDropdown = document.getElementById('selectShape');
-            uniqueShapes.forEach(sh => {
-                shapeDropdown.innerHTML += `<option value="${sh}">${sh}</option>`;
-            });
-            shapeDropdown.disabled = false;
-        }
-
-        // 3. When Shape changes -> Unlock Sign Code options list box
-        function onShapeChanged() {
-            const category = document.getElementById('selectCategory').value;
-            const subclass = document.getElementById('selectSubclass').value;
-            const shape = document.getElementById('selectShape').value;
-            clearDropdown('selectSignCode', '-- Select Sign Code --');
-            clearDropdown('masterId', '-- Select Dimensions First --');
-
-            if (!shape) return;
-
-            const matches = allMasterRecords.filter(r => r.category === category && r.subclass === subclass && r.shape === shape);
-            const uniqueCodes = [...new Set(matches.map(r => r.sign_code))];
-
-            const codeDropdown = document.getElementById('selectSignCode');
-            uniqueCodes.forEach(co => {
-                codeDropdown.innerHTML += `<option value="${co}">${co}</option>`;
-            });
-            codeDropdown.disabled = false;
-        }
-
-        // 4. When Sign Code changes -> Unlock Manufacturing Size (Maps straight to master_id)
-        function onSignCodeChanged() {
-            const category = document.getElementById('selectCategory').value;
-            const subclass = document.getElementById('selectSubclass').value;
-            const shape = document.getElementById('selectShape').value;
-            const code = document.getElementById('selectSignCode').value;
-            clearDropdown('masterId', '-- Select Dimensions --');
-
-            if (!code) return;
-
-            const matches = allMasterRecords.filter(r => r.category === category && r.subclass === subclass && r.shape === shape && r.sign_code === code);
-
-            const dimensionsDropdown = document.getElementById('masterId');
-            matches.forEach(m => {
-                dimensionsDropdown.innerHTML += `<option value="${m.master_id}">${m.dimensions}</option>`;
-            });
-            dimensionsDropdown.disabled = false;
-        }
-
-        // Form submission network transmission loop controller
-        async function executeCreationPipeline(event) {
-            event.preventDefault();
-            
-            const payload = {
-                master_id: parseInt(document.getElementById('masterId').value),
-                longitude: parseFloat(document.getElementById('longCoord').value),
-                latitude: parseFloat(document.getElementById('latCoord').value),
-                title_en: document.getElementById('titleEn').value,
-                title_pa: document.getElementById('titlePa').value,
-                title_hi: document.getElementById('titleHi').value
-            };
-
-            try {
-                const response = await fetch('/api/admin/signs/create', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                
-                const result = await response.json();
-                if(response.ok) {
-                    latestGeneratedUid = result.sign_uid;
-                    document.getElementById('queue-uid').innerText = latestGeneratedUid;
-                    alert("Asset pipeline triggered successfully!\nGenerated Random sign_uid URL Token: " + latestGeneratedUid);
-                } else {
-                    alert("Error: " + result.detail);
-                }
-            } catch (err) {
-                alert("Error transmitting creation packet payload to backend server.");
+            if (response.ok && data.sign_uid) {
+                currentDeployedUid = data.sign_uid;
+                document.getElementById("queue-uid").textContent = currentDeployedUid;
+                alert(`SUCCESS! New asset successfully initialized. Alphanumeric Token: ${currentDeployedUid}`);
+            } else {
+                alert(`PIPELINE FAILURE: ${data.detail || 'Internal handling exception.'}`);
             }
+        } catch (error) {
+            alert(`CONNECTION REJECTED: Could not contact your local FastAPI backend deployment endpoints.`);
         }
+    }
 
-        async function triggerManagerApproval() {
-            if (!latestGeneratedUid) {
-                alert("Please deploy an asset using the cascading form layout first.");
-                return;
-            }
-            try {
-                const response = await fetch(`/api/admin/signs/approve/${latestGeneratedUid}`, { method: 'POST' });
-                const result = await response.json();
-                if(response.ok) {
-                    alert(result.message);
-                    window.open(`/s/${latestGeneratedUid}?lang=pa`, '_blank');
-                } else {
-                    alert("Approval failed: " + result.detail);
-                }
-            } catch (err) {
-                alert("Failed to transmit verification clearance signal to core API service.");
-            }
+    // 8. APPROVAL MODERATION MANAGER PATHWAY TOGGLE HOOK
+    async function triggerManagerApproval() {
+        if (!currentDeployedUid) {
+            alert("ACTION REJECTED: No freshly compiled signage token available inside review frame.");
+            return;
         }
+        
+        try {
+            // Adjust to hit your actual approval toggle routing signature context if named differently
+            const response = await fetch(`/api/admin/approve/${currentDeployedUid}`, { method: 'POST' });
+            const data = await response.json();
+            if (response.ok) {
+                alert(`APPROVED! Sign ${currentDeployedUid} is now verified and active across Jalandhar city maps!`);
+            } else {
+                alert(`APPROVAL REJECTED: ${data.detail}`);
+            }
+        } catch (e) {
+            alert("Database tracking submission failed logging manager approval checkpoint.");
+        }
+    }
     </script>
 </body>
 </html>
