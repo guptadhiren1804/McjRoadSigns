@@ -1,0 +1,60 @@
+McjRoadSigns/
+│
+├── config/                         # System Configurations (Strict environment separation)
+│   ├── __init__.py
+│   ├── database.py                 # PostGIS connection strings and read/write pool routing
+│   ├── security.py                 # Password hashing, cryptographic configurations, XSS filters
+│   └── settings.py                 # Global variables (SMS vendor endpoints, base URL paths)
+│
+├── database/                       # GIS Database Schema & Iterative Versioning
+│   ├── migrations/                 # Automated schema evolution scripts (e.g., Alembic/Flyway)
+│   ├── procedures/                 # PostGIS spatial functions (e.g., radius mapping lookup logs)
+│   ├── schema.sql                  # Initial structural layouts for tables, indexes, and constraints
+│   └── seeds.sql                   # Essential city metadata (Ward numbers, preliminary admin accounts)
+│
+├── src/                            # Central Core Program Logic
+│   ├── __init__.py
+│   │
+│   ├── auth/                       # OTP Validation & Session Security
+│   │   ├── __init__.py
+│   │   ├── sms_gateway.py          # Secure handler for dispatching OTP strings via telecom APIs
+│   │   └── verification.py         # OTP matching algorithms with cryptographic expiry windows
+│   │
+│   ├── core/                       # Automatic Document Generation & Asset Processing
+│   │   ├── __init__.py
+│   │   ├── pdf_compiler.py         # Stitches layout coordinates, MCJ headers, and QR vectors into PDFs
+│   │   └── qr_generator.py         # Vector graphics engine converting URL data into SVG format
+│   │
+│   ├── models/                     # Object-Relational Definition Classes
+│   │   ├── __init__.py
+│   │   ├── audit.py                # Tracking log objects (Who edited what and when)
+│   │   ├── sign.py                 # Structural properties mapping out individual physical signs
+│   │   └── user.py                 # RBAC administrative levels definitions
+│   │
+│   └── web/                        # API Routing Interfaces
+│       ├── __init__.py
+│       ├── admin_handlers.py       # Endpoints facilitating management dashboards and content entry
+│       ├── public_handlers.py      # High-performance engine intercepting citizen traffic redirects
+│       └── middleware.py           # Multi-layered protection layers (Rate limiting, Input sanitization)
+│
+├── static/                         # Assets Directly Distributed via Reverse Proxy
+│   ├── admin_assets/               # Design assets (CSS, JS) for internal dashboards
+│   └── citizen_assets/             # Clean, minimal CSS for highly compressed mobile loading
+│
+├── storage/                        # Persistent Network Vault (Isolated System Storage)
+│   ├── qr_vectors/                 # Standard source assets of raw QR graphics
+│   ├── sign_pdfs/                  # High-quality printable master sign templates (Permanent Archives)
+│   └── user_media/                 # Optimized images or audio guide assets uploaded by users
+│
+├── templates/                      # Dynamic HTML Architecture
+│   ├── admin/                      # Work panels for data entry, map layers, and system approvals
+│   └── citizen/                    # Category-based mobile layouts (Martyrs, Tourists, Heritage views)
+│
+├── tests/                          # Integrity Validation Frameworks
+│   ├── test_api.py                 # Tests unauthorized access denials on critical administration panels
+│   └── test_pipelines.py           # Validates that sign insertions flawlessly yield active PDFs
+│
+├── .env.example                    # Template file for secret configurations (DB credentials, SMS tokens)
+├── Dockerfile                      # Standard script for microservice isolation
+├── README.md                       # Documentation describing deployment setup steps
+└── requirements.txt                # System library dependency manifest

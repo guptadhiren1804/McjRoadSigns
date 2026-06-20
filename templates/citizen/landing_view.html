@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="{{ current_lang }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }} - MCJ Smart Signs</title>
+    <!-- Links natively to the static stylesheet we created earlier -->
+    <link rel="stylesheet" href="/static/citizen_assets/style.css">
+</head>
+<body>
+
+    <!-- 1. FIXED TOP NAVIGATION WITH TRILINGUAL TOGGLE -->
+    <header>
+        <div class="mcj-brand">MUNICIPAL CORPORATION JALANDHAR</div>
+        
+        <!-- Interactive Dropdown: Triggers client-side language routing switch -->
+        <select class="lang-select" onchange="switchLanguage(this.value)">
+            <option value="en" {% if current_lang == 'en' %}selected{% endif %}>English</option>
+            <option value="pa" {% if current_lang == 'pa' %}selected{% endif %}>ਪੰਜਾਬੀ</option>
+            <option value="hi" {% if current_lang == 'hi' %}selected{% endif %}>हिंदी</option>
+        </select>
+    </header>
+
+    <!-- 2. CORE DYNAMIC CONTENT PANEL CONTAINER -->
+    <main class="content-area">
+        <article class="info-card">
+            <!-- Dynamic parameters populated on-the-fly by public_handlers.py -->
+            <h1 id="content-title">{{ page_title }}</h1>
+            <p id="content-body" class="body-text">{{ description }}</p>
+        </article>
+        
+        <!-- Non-editable verification baseline meta parameter tag -->
+        <div class="sign-tag">
+            ROAD SIGN SERIAL UID: {{ sign_uid }}
+        </div>
+    </main>
+
+    <!-- 3. MANDATORY VENDOR ADD-ON ATTRIBUTION BRANDING FOOTER -->
+    <footer>
+        <p>{{ attribution_text }} | <a href="{{ vendor_url }}" target="_blank">Visit Web Portal</a></p>
+    </footer>
+
+    <!-- 4. LIGHTWEIGHT CLIENT-SIDE INTERACTION ROUTING ENGINE -->
+    <script>
+        function switchLanguage(langCode) {
+            // Extracts current web URL window context parameters
+            const activeUrl = new URL(window.location.href);
+            
+            // Updates the 'lang' query parameter dynamically without breaking page states
+            activeUrl.searchParams.set('lang', langCode);
+            
+            // Forces browser redirect to reload the view mapping with the new translation
+            window.location.href = activeUrl.toString();
+        }
+    </script>
+</body>
+</html>

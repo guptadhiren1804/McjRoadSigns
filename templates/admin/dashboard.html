@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCJ Road Signs Administrative Hub</title>
+    <!-- Absolute asset link path ensures Windows directories bridge cleanly -->
+    <link rel="stylesheet" href="/static/admin_assets/admin.css">
+</head>
+<body>
+
+    <!-- Top Administrative Status Bar Banner -->
+    <nav class="admin-navbar">
+        <div class="navbar-title">Municipal Corporation Jalandhar (MCJ) Smart Portal</div>
+        <div style="font-size: 14px; font-weight: 600;">Authorized Local Session Active</div>
+    </nav>
+
+    <!-- Main Workspace Dashboard Grid Matrix Layer -->
+    <main class="dashboard-grid">
+
+
+        <!-- Left Panel Column: Cascading Dropdown Deployment Form Section -->
+        <section class="panel-box">
+            <h2 class="panel-heading">Deploy New IRC:67 Asset Board</h2>
+            <form id="signCreationForm" onsubmit="executeCreationPipeline(event)">
+                
+                <!-- 1. Category Class Selector -->
+                <div class="form-group">
+                    <label>1. Select Sign Classification Category</label>
+                    <select id="selectCategory" class="form-control" onchange="onCategoryChanged()" required>
+                        <option value="">-- Choose Category --</option>
+                        <option value="MandatoryOrRegulatory">Mandatory or Regulatory Signs</option>
+                        <option value="CautionaryOrWarning">Cautionary or Warning Signs</option>
+                        <option value="InformatoryOrGuide">Informatory or Guide Signs</option>
+                    </select>
+                </div>
+
+                <!-- 2. Sub-Class Selector -->
+                <div class="form-group">
+                    <label>2. Select Sub-Classification Type</label>
+                    <select id="selectSubclass" class="form-control" onchange="onSubclassChanged()" disabled required>
+                        <option value="">-- Select Category First --</option>
+                    </select>
+                </div>
+
+                <!-- 3. Shape Selector -->
+                <div class="form-group">
+                    <label>3. Select Geometric Sign Shape</label>
+                    <select id="selectShape" class="form-control" onchange="onShapeChanged()" disabled required>
+                        <option value="">-- Select Subclass First --</option>
+                    </select>
+                </div>
+
+                <!-- 4. IRC Code Selector -->
+                <div class="form-group">
+                    <label>4. Select IRC Sign Identifier Code</label>
+                    <select id="selectSignCode" class="form-control" onchange="onSignCodeChanged()" disabled required>
+                        <option value="">-- Select Shape First --</option>
+                    </select>
+                </div>
+
+                <!-- 5. Dimension Size Selector (Final Input that resolves to master_id) -->
+                <div class="form-group">
+                    <label>5. Select Industrial Manufacturing Size Dimensions</label>
+                    <select id="masterId" class="form-control" disabled required>
+                        <option value="">-- Select Sign Code First --</option>
+                    </select>
+                </div>
+
+                <!-- Spatial GIS Coordinates Plots Inputs -->
+                <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px;">
+                    <div>
+                        <label>Spatial Longitude</label>
+                        <input type="number" id="longCoord" step="0.000001" class="form-control" value="75.579259" required>
+                    </div>
+                    <div>
+                        <label>Spatial Latitude</label>
+                        <input type="number" id="latCoord" step="0.000001" class="form-control" value="31.325553" required>
+                    </div>
+                </div>
+
+                <!-- Trilingual Title Descriptors -->
+                <div class="form-group"><label>English Title Header</label><input type="text" id="titleEn" class="form-control" placeholder="e.g., Model Town Roundabout" required></div>
+                <div class="form-group"><label>Punjabi Title Header (ਪੰਜਾਬੀ)</label><input type="text" id="titlePa" class="form-control" placeholder="e.g., ਮਾਡਲ ਟਾਊਨ ਚੌਂਕ" required></div>
+                <div class="form-group"><label>Hindi Title Header (हिंदी)</label><input type="text" id="titleHi" class="form-control" placeholder="e.g., मॉडल टाउन चौक" required></div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">Generate Random Asset and Compile Print PDF</button>
+            </form>
+        </section>
+
+        <!-- Right Panel Column: Operational Verification Review Queue -->
+        <section class="panel-box">
+            <h2 class="panel-heading">Pending Municipal Verification Queue</h2>
+            <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 12px; background-color: #fafafa;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                    <div>
+                        <strong style="font-size: 16px;" id="queue-uid">NO ACTIVE ASSET</strong>
+                        <p style="font-size: 13px; color: #475569; margin-top: 4px;">Dynamic Content Pipeline Sandbox View</p>
+                    </div>
+                    <span class="badge badge-pending">Awaiting Review</span>
+                </div>
+                <p style="font-size: 12px; color: #64748b; margin-bottom: 12px;">Four-Eyes verification gate simulation frame.</p>
+                <button onclick="triggerManagerApproval()" class="btn btn-success" style="padding: 6px 12px; font-size: 12px;">Authorize and Push Live across City</button>
+            </div>
+        </section>
+
+    </main>
+
+
+    <!-- Script Engine Core: Dynamic Filters and API Transmission -->
+    <script>
+        let allMasterRecords = [];
+        let latestGeneratedUid = "";
+
+        // Query metadata directly from backend on template initialization
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const response = await fetch('/api/admin/sign-masters-lookup');
+                if (response.ok) {
+                    allMasterRecords = await response.json();
+                } else {
+                    console.error("Failed to populate cascading selector datasets.");
+                }
+            } catch (err) {
+                console.error("Network communication error initializing dropdown lists.");
+            }
+        });
+
+        function clearDropdown(elementId, placeholderText) {
+            const dropdown = document.getElementById(elementId);
+            dropdown.innerHTML = `<option value="">${placeholderText}</option>`;
+            dropdown.disabled = true;
+        }
+
+        // 1. When Category changes -> Unlock Subclass options list box
+        function onCategoryChanged() {
+            const category = document.getElementById('selectCategory').value;
+            clearDropdown('selectSubclass', '-- Select Subclass --');
+            clearDropdown('selectShape', '-- Select Shape First --');
+            clearDropdown('selectSignCode', '-- Select Sign Code First --');
+            clearDropdown('masterId', '-- Select Dimensions First --');
+
+            if (!category) return;
+
+            const matches = allMasterRecords.filter(r => r.category === category);
+            const uniqueSubclasses = [...new Set(matches.map(r => r.subclass))];
+            
+            const subclassDropdown = document.getElementById('selectSubclass');
+            uniqueSubclasses.forEach(sub => {
+                subclassDropdown.innerHTML += `<option value="${sub}">${sub}</option>`;
+            });
+            subclassDropdown.disabled = false;
+        }
+
+        // 2. When Subclass changes -> Unlock Shape options list box
+        function onSubclassChanged() {
+            const category = document.getElementById('selectCategory').value;
+            const subclass = document.getElementById('selectSubclass').value;
+            clearDropdown('selectShape', '-- Select Shape --');
+            clearDropdown('selectSignCode', '-- Select Sign Code First --');
+            clearDropdown('masterId', '-- Select Dimensions First --');
+
+            if (!subclass) return;
+
+            const matches = allMasterRecords.filter(r => r.category === category && r.subclass === subclass);
+            const uniqueShapes = [...new Set(matches.map(r => r.shape))];
+
+            const shapeDropdown = document.getElementById('selectShape');
+            uniqueShapes.forEach(sh => {
+                shapeDropdown.innerHTML += `<option value="${sh}">${sh}</option>`;
+            });
+            shapeDropdown.disabled = false;
+        }
+
+        // 3. When Shape changes -> Unlock Sign Code options list box
+        function onShapeChanged() {
+            const category = document.getElementById('selectCategory').value;
+            const subclass = document.getElementById('selectSubclass').value;
+            const shape = document.getElementById('selectShape').value;
+            clearDropdown('selectSignCode', '-- Select Sign Code --');
+            clearDropdown('masterId', '-- Select Dimensions First --');
+
+            if (!shape) return;
+
+            const matches = allMasterRecords.filter(r => r.category === category && r.subclass === subclass && r.shape === shape);
+            const uniqueCodes = [...new Set(matches.map(r => r.sign_code))];
+
+            const codeDropdown = document.getElementById('selectSignCode');
+            uniqueCodes.forEach(co => {
+                codeDropdown.innerHTML += `<option value="${co}">${co}</option>`;
+            });
+            codeDropdown.disabled = false;
+        }
+
+        // 4. When Sign Code changes -> Unlock Manufacturing Size (Maps straight to master_id)
+        function onSignCodeChanged() {
+            const category = document.getElementById('selectCategory').value;
+            const subclass = document.getElementById('selectSubclass').value;
+            const shape = document.getElementById('selectShape').value;
+            const code = document.getElementById('selectSignCode').value;
+            clearDropdown('masterId', '-- Select Dimensions --');
+
+            if (!code) return;
+
+            const matches = allMasterRecords.filter(r => r.category === category && r.subclass === subclass && r.shape === shape && r.sign_code === code);
+
+            const dimensionsDropdown = document.getElementById('masterId');
+            matches.forEach(m => {
+                dimensionsDropdown.innerHTML += `<option value="${m.master_id}">${m.dimensions}</option>`;
+            });
+            dimensionsDropdown.disabled = false;
+        }
+
+        // Form submission network transmission loop controller
+        async function executeCreationPipeline(event) {
+            event.preventDefault();
+            
+            const payload = {
+                master_id: parseInt(document.getElementById('masterId').value),
+                longitude: parseFloat(document.getElementById('longCoord').value),
+                latitude: parseFloat(document.getElementById('latCoord').value),
+                title_en: document.getElementById('titleEn').value,
+                title_pa: document.getElementById('titlePa').value,
+                title_hi: document.getElementById('titleHi').value
+            };
+
+            try {
+                const response = await fetch('/api/admin/signs/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                if(response.ok) {
+                    latestGeneratedUid = result.sign_uid;
+                    document.getElementById('queue-uid').innerText = latestGeneratedUid;
+                    alert("Asset pipeline triggered successfully!\nGenerated Random sign_uid URL Token: " + latestGeneratedUid);
+                } else {
+                    alert("Error: " + result.detail);
+                }
+            } catch (err) {
+                alert("Error transmitting creation packet payload to backend server.");
+            }
+        }
+
+        async function triggerManagerApproval() {
+            if (!latestGeneratedUid) {
+                alert("Please deploy an asset using the cascading form layout first.");
+                return;
+            }
+            try {
+                const response = await fetch(`/api/admin/signs/approve/${latestGeneratedUid}`, { method: 'POST' });
+                const result = await response.json();
+                if(response.ok) {
+                    alert(result.message);
+                    window.open(`/s/${latestGeneratedUid}?lang=pa`, '_blank');
+                } else {
+                    alert("Approval failed: " + result.detail);
+                }
+            } catch (err) {
+                alert("Failed to transmit verification clearance signal to core API service.");
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,130 @@
+/* McjRoadSigns - Municipal Admin Portal Theme */
+:root {
+    --mcj-blue: #1e3a8a;
+    --mcj-slate: #0f172a;
+    --success: #16a34a;
+    --warning: #ca8a04;
+    --border-color: #cbd5e1;
+    --bg-workspace: #f1f5f9;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+body {
+    background-color: var(--bg-workspace);
+    color: var(--mcj-slate);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* Top Administrative Navigation Bar */
+.admin-navbar {
+    background-color: var(--mcj-slate);
+    color: white;
+    padding: 16px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.navbar-title {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+/* Dashboard Two-Column Screen Matrix */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    padding: 24px;
+    flex-grow: 1;
+}
+
+@media (max-width: 1024px) {
+    .dashboard-grid { grid-template-columns: 1fr; }
+}
+
+.panel-box {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.panel-heading {
+    font-size: 20px;
+    margin-bottom: 20px;
+    font-weight: 700;
+    color: var(--mcj-blue);
+    border-bottom: 2px solid var(--bg-workspace);
+    padding-bottom: 10px;
+}
+
+/* Data Entry Form Component Elements */
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #475569;
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.form-control:focus {
+    border-color: var(--mcj-blue);
+}
+
+textarea.form-control {
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* System Operational Interactive Buttons */
+.btn {
+    display: inline-block;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    outline: none;
+    text-align: center;
+    transition: opacity 0.2s;
+}
+
+.btn:hover { opacity: 0.9; }
+.btn-primary { background-color: var(--mcj-blue); color: white; }
+.btn-success { background-color: var(--success); color: white; }
+
+/* Status Indicators */
+.badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 700;
+}
+.badge-pending { background-color: #fef08a; color: #854d0e; }
+.badge-approved { background-color: #dcfce7; color: #166534; }

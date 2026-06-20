@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCJ Gateway | Verify Security Token</title>
+    <script src="https://tailwindcss.com"></script>
+    <link class="stylesheet" href="/static/citizen_assets/style.css">
+    <link class="stylesheet" href="/static/admin_assets/admin.css">
+</head>
+<body class="bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 flex items-center justify-center min-h-screen p-4 font-sans antialiased text-slate-200">
+    
+    <div class="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none"></div>
+    <div class="absolute w-[500px] h-[500px] bg-emerald-500/5 rounded-full blur-[120px] -top-40 -left-40 pointer-events-none"></div>
+
+    <div class="bg-slate-900/80 backdrop-blur-xl border border-slate-800/80 rounded-2xl shadow-2xl w-full max-w-md p-8 relative z-10">
+        
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-widest mb-4">
+                Identity Security Wall
+            </div>
+            <h1 class="text-2xl font-black text-white tracking-tight">Enter Identity Token</h1>
+            <p class="text-sm text-slate-400 mt-2">
+                Challenge active for terminal <span class="font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded text-[13px] tracking-wider">+91 {{ mobile }}</span>
+            </p>
+        </div>
+
+        <form action="/api/auth/otp/verify" method="POST" id="otp_submission_form" class="space-y-6">
+            <input type="hidden" name="mobile_number" value="{{ mobile }}">
+            <input type="hidden" name="otp_input" id="compiled_otp_field">
+
+            <div>
+                <label class="block text-center text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">
+                    6-Digit Security Token
+                </label>
+                
+                <div class="flex justify-between items-center space-x-2" id="otp_box_matrix">
+                    <input type="text" maxlength="1" pattern="[0-9]" required class="w-12 h-14 text-center bg-slate-950 border border-slate-800 rounded-xl text-2xl font-black text-emerald-400 font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-inner">
+                    <input type="text" maxlength="1" pattern="[0-9]" required class="w-12 h-14 text-center bg-slate-950 border border-slate-800 rounded-xl text-2xl font-black text-emerald-400 font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-inner">
+                    <input type="text" maxlength="1" pattern="[0-9]" required class="w-12 h-14 text-center bg-slate-950 border border-slate-800 rounded-xl text-2xl font-black text-emerald-400 font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-inner">
+                    <input type="text" maxlength="1" pattern="[0-9]" required class="w-12 h-14 text-center bg-slate-950 border border-slate-800 rounded-xl text-2xl font-black text-emerald-400 font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-inner">
+                    <input type="text" maxlength="1" pattern="[0-9]" required class="w-12 h-14 text-center bg-slate-950 border border-slate-800 rounded-xl text-2xl font-black text-emerald-400 font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-inner">
+                    <input type="text" maxlength="1" pattern="[0-9]" required class="w-12 h-14 text-center bg-slate-950 border border-slate-800 rounded-xl text-2xl font-black text-emerald-400 font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-inner">
+                </div>
+            </div>
+
+            <div class="text-center text-xs text-slate-500 font-medium">
+                Hardcoded token active &bull; Auto-submits on 6th digit
+            </div>
+
+            <button type="submit" class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-4 px-4 rounded-xl shadow-lg shadow-emerald-600/20 transition-all duration-150 active:scale-[0.99] uppercase tracking-wider text-sm font-semibold">
+                Verify & Unlock Control Interface
+            </button>
+        </form>
+
+        <div class="text-center mt-6 pt-5 border-t border-slate-800/80 flex justify-between items-center text-xs">
+            <a href="/admin/login" class="font-medium text-slate-400 hover:text-indigo-400 transition-colors">&larr; Return to Access Desk</a>
+            <span class="text-slate-700">|</span>
+            <span class="text-slate-500 font-bold font-mono">Token Override Active</span>
+        </div>
+    </div>
+
+    <script>
+        const inputs = document.querySelectorAll('#otp_box_matrix input');
+        const hiddenInput = document.getElementById('compiled_otp_field');
+        const form = document.getElementById('otp_submission_form');
+
+        inputs.forEach((input, index) => {
+            input.addEventListener('input', (e) => {
+                if (input.value.length === 1 && index < inputs.length - 1) {
+                    inputs[index + 1].focus();
+                }
+                compileOTP();
+                
+                // Automatically dispatch transaction when matrix is full
+                if (index === inputs.length - 1 && input.value.length === 1) {
+                    setTimeout(() => { form.submit(); }, 100);
+                }
+            });
+
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' && input.value.length === 0 && index > 0) {
+                    inputs[index - 1].focus();
+                }
+            });
+        });
+
+        function compileOTP() {
+            let compiledToken = "";
+            inputs.forEach(input => compiledToken += input.value);
+            hiddenInput.value = compiledToken;
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            if(inputs && inputs.length > 0) inputs[0].focus();
+        });
+    </script>
+</body>
+</html>

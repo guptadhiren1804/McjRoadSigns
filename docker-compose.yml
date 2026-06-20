@@ -1,0 +1,70 @@
+# =====================================================================
+# MUNICIPAL CORPORATION JALANDHAR ROAD SIGNS PROJECT (McjRoadSigns)
+# PRODUCTION DOCKER COMPOSE MULTI-CONTAINER CLUSTER SPECIFICATION
+# =====================================================================
+
+version: '3.8'
+
+services:
+  # -------------------------------------------------------------------
+  # SERVICE 1: POSTGRESQL + POSTGIS SPATIAL DATABASE CLUSTER
+  # -------------------------------------------------------------------
+  mcj_database:
+    image: postgis/postgis:15-3.3-alphine # Lightweight Alpine base containing PostGIS extensions
+    container_name: mcj_gis_db_container
+    restart: always
+    environment:
+      POSTGRES_DB: mcj_road_signs_db
+      POSTGRES_USER: mcj_admin
+      POSTGRES_PASSWORD: your_highly_secure_database_password_string # Must match your active .env variables
+    ports:
+      - "5432:5432"
+    volumes:
+      # Mount structural data volumes to keep database data safe even if the container restarts
+      - mcj_db_persistent_data:/var/lib/postgresql/data
+    networks:
+      - mcj_secure_network
+    healthcheck:
+      # Ensures the database engine is fully booted up before the Python app attempts to connect
+      test: ["CMD-SHELL", "pg_isready -U mcj_admin -d mcj_road_signs_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # -------------------------------------------------------------------
+  # SERVICE 2: FASTAPI BACKEND WEB SERVICE APPLICATION
+  # -------------------------------------------------------------------
+  mcj_web_app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mcj_web_app_container
+    restart: always
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env # Loads all your secret tokens, base URLs, and SMS API settings directly
+    environment:
+      - DB_HOST=mcj_database # Re-routes host loop to target the internal network container alias
+      - DB_PORT=5432
+    volumes:
+      # Map an external folder volume to permanently store generated QR SVGs and print PDFs
+      - mcj_permanent_storage_vault:/app/storage
+    networks:
+      - mcj_secure_network
+    depends_on:
+      mcj_database:
+        condition: service_healthy # Holds the web boot process until the database health check passes
+
+# ---------------------------------------------------------------------
+# VOLUMES & ISOLATED NETWORK SCHEDULING DEFINITIONS
+# ---------------------------------------------------------------------
+volumes:
+  mcj_db_persistent_data:
+    driver: local
+  mcj_permanent_storage_vault:
+    driver: local
+
+networks:
+  mcj_secure_network:
+    driver: bridge

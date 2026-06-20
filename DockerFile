@@ -1,0 +1,67 @@
+# =====================================================================
+# MUNICIPAL CORPORATION JALANDHAR ROAD SIGNS PROJECT (McjRoadSigns)
+# SECURE MULTI-STAGE INDUSTRIAL DEPLOYMENT BLUEPRINT
+# =====================================================================
+
+# ---------------------------------------------------------------------
+# STAGE 1: COMPILATION AND DEPENDENCY SANDBOX
+# ---------------------------------------------------------------------
+FROM python:3.11-slim-bookworm AS builder
+
+# Enforce a clean, non-interactive automated installation environment
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /build
+
+# Install system-level build tools and required C-libraries for psycopg and GDAL
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy your Python requirements manifest and compile wheels into a sandbox cache
+COPY requirements.txt .
+RUN pip install --no-cache-dir --user -r requirements.txt
+
+# ---------------------------------------------------------------------
+# STAGE 2: PRODUCTION RUNTIME MINIMALIST IMAGE
+# ---------------------------------------------------------------------
+FROM python:3.11-slim-bookworm AS runtime
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PORT=8000
+
+WORKDIR /app
+
+# MANDATORY STEP FOR POSTGIS: Install runtime C-dependencies and GDAL binary components
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    gdal-bin \
+    libgdal-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy the compiled Python dependencies cleanly from the build sandbox
+COPY --from=builder /root/.local /root/.local
+ENV PATH=/root/.local/bin:$PATH
+
+# Copy your complete, verified application structure
+COPY . .
+
+# Create the internal storage directories if they do not exist, and set up 
+# an unprivileged execution user group boundary for security hardening.
+RUN mkdir -p storage/qr_vectors storage/sign_pdfs storage/uploaded_media && \
+    useradd -u 1001 mcjuser && \
+    chown -R mcjuser:mcjuser /app
+
+# Drop root privileges. The container will run under standard user permissions.
+USER mcjuser
+
+# Expose your internal web gateway port
+EXPOSE 8000
+
+# Execute your server using uvicorn, utilizing 4 parallel processing worker loops
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
