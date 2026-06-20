@@ -1,6 +1,6 @@
 """
 Municipal Corporation Jalandhar Road Signs Project (McjRoadSigns)
-Administrative Web Layer: Structured Content Uploads, Approvals, and Random Asset Pipelines
+Administrative Web Layer: Decoupled Asset Deployment & Dynamic Table Linkage Runtimes
 """
 
 import json
@@ -14,91 +14,124 @@ logger = logging.getLogger("McjRoadSigns.Web.Admin")
 
 def handle_create_new_sign_board(form_data: dict, session_user: dict) -> dict:
     """
-    Executes the secure pipeline required to deploy a new asset into 3 tables.
-    Gracefully normalizes row tuples into standard tracking variables.
+    Deploys a new IRC:67 asset board, inserting an isolated entry into sign_instances only.
+    Coordinates default to NULL if not physically installed yet.
     """
-    # 1. Enforce Role/Session validation
     if not enforce_admin_session_guard(session_user):
         return {"status": "error", "code": 403, "message": "Access Denied: Insufficient permissions."}
 
-    # 2. AUTOMATIC TUPLE NORMALIZATION MATRIX
+    # Normalize user tracking variables from tuple context structures safely
     if isinstance(session_user, (tuple, list)):
         user_id = session_user[0]
-        user_role = session_user[3]
     else:
         user_id = session_user.get("user_id")
-        user_role = session_user.get("role_level")
-    
-    # Extract structural specifications from web form data
-    master_id = int(form_data.get("master_id"))
-    longitude = float(form_data.get("longitude", 0.0))
-    latitude = float(form_data.get("latitude", 0.0))
-    
-    title_en = sanitize_input_text(form_data.get("title_en", "Pending Initialization"))
-    title_pa = sanitize_input_text(form_data.get("title_pa", "ਲੰਬਿਤ ਮੈਪਿੰਗ"))
-    title_hi = sanitize_input_text(form_data.get("title_hi", "लंबित मैपिंग"))
-
+        
+    master_id = int(form_data.get("master_id", 0))
     if not master_id:
         return {"status": "error", "code": 400, "message": "Missing core sign master template ID."}
 
-    # ─── ENSURE THIS TRY BLOCK IS INDENTED EXACTLY 4 SPACES IN ───
+    # Parse coordinates flexibly. If missing, 0, or blank, store as None (NULL in DB)
+    lon_raw = form_data.get("longitude")
+    lat_raw = form_data.get("latitude")
+    
+    try:
+        longitude = float(lon_raw) if lon_raw and float(lon_raw) != 0.0 else None
+        latitude = float(lat_raw) if lat_raw and float(lat_raw) != 0.0 else None
+    except ValueError:
+        longitude, latitude = None, None
+
     try:
         with get_db_cursor() as cursor:
-            # Step 1: Let the generator yield a secure, random 10-character token string
+            # Generate your streamlined clean 10-character unique token identifier string
             qr_metadata = generate_sign_qr_asset(cursor)
             generated_uid = qr_metadata["sign_uid"]
             
-            # Step 2: [TABLE 1 INSERT] Plot physical post instance down into PostGIS map layer using verified user_id
-            insert_instance_query = """
-                INSERT INTO sign_instances (master_id, sign_uid, geo_location, created_by)
-                VALUES (%s, %s, ST_SetSRID(ST_MakePoint(%s, %s), 4326), %s)
-                RETURNING id;
-            """
-            cursor.execute(insert_instance_query, (master_id, generated_uid, longitude, latitude, user_id))
-            instance_id = cursor.fetchone()[0] # Safely unwrap returning scalar integer value
-            
-            # Step 3: [TABLE 2 INSERT] Track static digital file mounts in storage directory
-            insert_assets_query = """
-                INSERT INTO sign_digital_assets (sign_instance_id, qr_vector_path, print_pdf_path)
-                VALUES (%s, %s, %s);
-            """
-            qr_vector_path = f"storage/qr_vectors/{generated_uid}.svg"
-            print_pdf_path = f"storage/sign_pdfs/{generated_uid}.pdf"
-            cursor.execute(insert_assets_query, (instance_id, qr_vector_path, print_pdf_path))
-            
-            # Step 4: [TABLE 3 INSERT] Spawn the matching isolated landing page profile canvas record
-            initial_content_payload = {
-                "description_en": "Welcome to Jalandhar Smart City Infrastructure. Detailed content initialized by Ferrum Tech Industries.",
-                "description_pa": "ਜਲੰਧਰ ਸਮਾਰਟ ਸਿਟੀ ਬੁਨਿਆਦੀ ਢਾਂਚੇ ਵਿੱਚ ਤੁਹਾਡਾ ਸੁਆਗਤ ਹੈ।",
-                "description_hi": "जालंधर स्मार्ट सिटी बुनियादी ढांचे में आपका स्वागत है।",
-                "gallery_images": [], 
-                "audio_guide_url": None,
-                "emergency_contacts": {"police": "112", "medical": "108"}
-            }
-            
-            insert_landing_query = """
-                INSERT INTO sign_landing_pages (sign_uid, title_en, title_pa, title_hi, content_json, updated_by)
-                VALUES (%s, %s, %s, %s, %s, %s);
-            """
-            cursor.execute(insert_landing_query, (generated_uid, title_en, title_pa, title_hi, json.dumps(initial_content_payload), user_id))
+            # Conditionally map PostGIS spatial parameters based on data availability
+            if longitude is not None and latitude is not None:
+                insert_instance_query = """
+                    INSERT INTO sign_instances (master_id, sign_uid, geo_location, created_by)
+                    VALUES (%s, %s, ST_SetSRID(ST_MakePoint(%s, %s), 4326), %s)
+                    RETURNING id;
+                """
+                cursor.execute(insert_instance_query, (master_id, generated_uid, longitude, latitude, user_id))
+            else:
+                # Deploying to warehouse state prior to physical field placement mapping
+                insert_instance_query = """
+                    INSERT INTO sign_instances (master_id, sign_uid, geo_location, created_by)
+                    VALUES (%s, %s, NULL, %s)
+                    RETURNING id;
+                """
+                cursor.execute(insert_instance_query, (master_id, generated_uid, user_id))
+                
+            instance_id = cursor.fetchone()[0]
 
-        # Step 5: Stitch the crisp QR vector straight into the final printable asset sheet
-        compile_print_pdf(qr_metadata)
-
-        logger.info(f"System initialization lifecycle completed for asset board: {generated_uid}")
+        logger.info(f"Sign instance allocated in manufacturing registry queue: ID {instance_id} | Token: {generated_uid}")
         return {
             "status": "success",
-            "message": "Sign asset deployed on map layout across all 3 registries. Printable PDF compiled successfully.",
+            "message": f"Sign board entry deployed successfully under Token {generated_uid}. Coordinates left unmapped.",
             "sign_uid": generated_uid,
-            "paths": {
-                "svg": qr_vector_path,
-                "pdf": print_pdf_path
-            }
+            "instance_id": instance_id
         }
 
     except Exception as error:
-        logger.error(f"Asset pipeline broken down during sign deployment execution: {error}")
+        logger.error(f"Asset deployment pipeline broken down: {error}")
         return {"status": "error", "code": 500, "message": "Internal processing failure running generator pipeline."}
+
+
+def handle_link_digital_asset_to_instance(form_data: dict, session_user: dict) -> dict:
+    """
+    Dynamically maps or switches a Digital Asset profile row pointer to a different Sign Instance ID.
+    """
+    if not enforce_admin_session_guard(session_user):
+        return {"status": "error", "code": 403, "message": "Unauthorized context action access."}
+
+    digital_asset_id = int(form_data.get("digital_asset_id", 0))
+    target_instance_id = int(form_data.get("target_instance_id", 0))
+
+    if not digital_asset_id or not target_instance_id:
+        return {"status": "error", "code": 400, "message": "Missing necessary linkage reference targets."}
+
+    update_query = """
+        UPDATE sign_digital_assets
+        SET sign_instance_id = %s
+        WHERE id = %s;
+    """
+    try:
+        with get_db_cursor() as cursor:
+            cursor.execute(update_query, (target_instance_id, digital_asset_id))
+        logger.info(f"Digital asset id {digital_asset_id} re-linked to sign instance id {target_instance_id}")
+        return {"status": "success", "message": "Digital Asset layout linked to new target sign board instance successfully."}
+    except Exception as error:
+        logger.error(f"Linkage manipulation failed: {error}")
+        return {"status": "error", "code": 500, "message": "Database transaction failure recording asset linkage adjustment."}
+
+
+def handle_link_landing_page_to_instance(form_data: dict, session_user: dict) -> dict:
+    """
+    Dynamically transfers a Canvas Landing Page profile record link over to a different unique tracking sign_uid string.
+    """
+    if not enforce_admin_session_guard(session_user):
+        return {"status": "error", "code": 403, "message": "Unauthorized action access context."}
+
+    landing_page_id = int(form_data.get("landing_page_id", 0))
+    target_sign_uid = sanitize_input_text(form_data.get("target_sign_uid", "")).strip().upper()
+
+    if not landing_page_id or not target_sign_uid:
+        return {"status": "error", "code": 400, "message": "Missing core page identification mapping targets."}
+
+    update_query = """
+        UPDATE sign_landing_pages
+        SET sign_uid = %s
+        WHERE id = %s;
+    """
+    try:
+        with get_db_cursor() as cursor:
+            cursor.execute(update_query, (target_sign_uid, landing_page_id))
+        logger.info(f"Landing page id {landing_page_id} successfully bound over to sign token: {target_sign_uid}")
+        return {"status": "success", "message": f"Landing page layout linked over to target sign token reference {target_sign_uid} successfully."}
+    except Exception as error:
+        logger.error(f"Landing page re-routing allocation configuration dropped: {error}")
+        return {"status": "error", "code": 500, "message": "Database transaction error mutating landing portal mapping values."}
 
 
 

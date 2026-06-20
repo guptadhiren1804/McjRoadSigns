@@ -228,3 +228,27 @@ async def program_admin_logout(request: Request):
     request.session.clear()
     logger.info("Administrative session cookie destroyed. Session terminated successfully.")
     return response
+
+@app.post("/api/admin/assets/relink-digital")
+async def api_relink_digital_asset(request: Request):
+    session_user = request.session.get("user")
+    form_raw = await request.form()
+    form_data = dict(form_raw)
+    
+    from src.web.admin_handlers import handle_link_digital_asset_to_instance
+    result = handle_link_digital_asset_to_instance(form_data, session_user)
+    if result.get("status") == "error":
+        raise HTTPException(status_code=result.get("code", 400), detail=result.get("message"))
+    return result
+
+@app.post("/api/admin/assets/relink-landing")
+async def api_relink_landing_page(request: Request):
+    session_user = request.session.get("user")
+    form_raw = await request.form()
+    form_data = dict(form_raw)
+    
+    from src.web.admin_handlers import handle_link_landing_page_to_instance
+    result = handle_link_landing_page_to_instance(form_data, session_user)
+    if result.get("status") == "error":
+        raise HTTPException(status_code=result.get("code", 400), detail=result.get("message"))
+    return result
